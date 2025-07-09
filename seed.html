@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Seed Subjects</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBgXG-oIsLygIUwC4H5xUcduHqWa1Kba5w",
+      authDomain: "studentattendancesystem-e3f6c.firebaseapp.com",
+      projectId: "studentattendancesystem-e3f6c",
+      storageBucket: "studentattendancesystem-e3f6c.appspot.com",
+      messagingSenderId: "385675923275",
+      appId: "1:385675923275:web:945301f83c5a7d182162ce",
+      measurementId: "G-DM0VLMVNTM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function seedSubjects() {
+      const subjects = [
+        { name: "Maths-1", department: "CE", semester: "1", hasLecture: true, hasLab: false },
+        { name: "Modern Physics", department: "CE", semester: "1", hasLecture: true, hasLab: true },
+        { name: "Sports & Yoga", department: "CE", semester: "1", hasLecture: false, hasLab: true },
+        { name: "CPF", department: "CE", semester: "1", hasLecture: true, hasLab: true },
+        { name: "Communication Skills in English", department: "CE", semester: "1", hasLecture: true, hasLab: true },
+        { name: "BE", department: "CE", semester: "1", hasLecture: true, hasLab: true },
+        { name: "Computer Basics and Static Web Page Desining", department: "CE", semester: "1", hasLecture: false, hasLab: true }
+      ];
+
+      for (const subject of subjects) {
+        await addDoc(collection(db, "subjects"), subject);
+        console.log(`Seeded subject: ${subject.name}`);
+      }
+
+      alert("Subjects seeded successfully!");
+    }
+
+    seedSubjects();
+  </script>
+</head>
+<body>
+  <h2>Seeding CS Semester 1 Subjects...</h2>
+</body>
+</html>

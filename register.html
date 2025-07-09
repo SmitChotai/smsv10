@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Student Registration</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f8ff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      color: #2c3e50;
+    }
+
+    h2 {
+      color: #1a5276;
+      margin: 25px 0;
+      font-size: 2rem;
+      text-align: center;
+      position: relative;
+      padding-bottom: 10px;
+    }
+
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: #3498db;
+    }
+
+    #registerForm {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 16px;
+      transition: all 0.3s;
+      box-sizing: border-box;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+
+    .password-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .password-wrapper input {
+      padding-right: 44px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 20px;
+      color: #2980b9;
+      user-select: none;
+      z-index: 2;
+      transition: color 0.3s;
+    }
+
+    .toggle-password:hover {
+      color: #1a5276;
+    }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232980b9'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      background-size: 16px;
+      padding-right: 40px;
+    }
+
+    button[type="submit"] {
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #1a5276;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    p {
+      text-align: center;
+      color: #5d6d7e;
+      margin-top: 20px;
+    }
+
+    a {
+      color: #2980b9;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+      #registerForm {
+        padding: 20px;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    input,
+    select {
+      transition: all 0.3s ease;
+    }
+
+    option[value="CSE"] {
+      background-color: #e3f2fd;
+    }
+
+    option[value="IT"] {
+      background-color: #e8f5e9;
+    }
+
+    option[value="CE"] {
+      background-color: #fff3e0;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Student Registration</h2>
+  <form id="registerForm">
+    <label for="enrollno">Enrollment Number:</label>
+    <input type="number" id="enrollno" required>
+
+    <label>Name:</label>
+    <input type="text" id="name" required>
+
+    <label>Email:</label>
+    <input type="email" id="email" required>
+
+    <label>Password:</label>
+    <div class="password-wrapper">
+      <input type="password" id="password" required>
+      <span class="toggle-password" onclick="togglePassword()">👁️</span>
+    </div>
+
+    <label>Department:</label>
+    <select id="department" required>
+      <option value="CSE">CSE</option>
+      <option value="IT">IT</option>
+      <option value="CE">CE</option>
+    </select>
+
+    <label>Semester:</label>
+    <select id="semester" required>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+    </select>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <p>Already have an account? <a href="index.html">Login here</a></p>
+
+  <!-- Firebase Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDocs, collection, query, where } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+  
+    const firebaseConfig = {
+      apiKey: "AIzaSyBgXG-oIsLygIUwC4H5xUcduHqWa1Kba5w",
+      authDomain: "studentattendancesystem-e3f6c.firebaseapp.com",
+      projectId: "studentattendancesystem-e3f6c",
+      storageBucket: "studentattendancesystem-e3f6c.appspot.com",
+      messagingSenderId: "385675923275",
+      appId: "1:385675923275:web:945301f83c5a7d182162ce",
+      measurementId: "G-DM0VLMVNTM"
+    };
+  
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+  
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+  
+      const enrollno = document.getElementById("enrollno").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const department = document.getElementById("department").value;
+      const semester = document.getElementById("semester").value;
+  
+      console.log("Submitted values:", { enrollno, name, email, password, department, semester });
+  
+      // ✅ Validations
+      if (!/^\d{8,12}$/.test(enrollno)) {
+        alert("Enrollment number must be 8-12 digits only.");
+        return;
+      }
+  
+      if (!/^[A-Za-z\s]+$/.test(name)) {
+        alert("Name should only contain letters and spaces.");
+        return;
+      }
+  
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        alert("Please enter a valid email.");
+        return;
+      }
+  
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters.");
+        return;
+      }
+  
+      if (!department || department === "") {
+        alert("Please select a department.");
+        return;
+      }
+  
+      if (!semester || semester === "") {
+        alert("Please select a semester.");
+        return;
+      }
+  
+      try {
+        // Check for existing enrollment number
+        const q = query(collection(db, "users"), where("enrollno", "==", Number(enrollno)));
+        const querySnapshot = await getDocs(q);
+  
+        if (!querySnapshot.empty) {
+          alert("Enrollment number already exists! Please use a different one.");
+          return;
+        }
+  
+        // Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+  
+        // Save user details in Firestore
+        await setDoc(doc(db, "users", uid), {
+          name,
+          email,
+          role: "student",
+          department,
+          semester,
+          enrollno: Number(enrollno)
+        });
+  
+        alert("Registration successful!");
+        window.location.href = "student.html";
+      } catch (error) {
+        alert("Error: " + error.message);
+        console.error(error);
+      }
+    });
+  </script>
+  
+
+
+  <!-- Toggle Password Script -->
+  <script>
+    function togglePassword() {
+      const passwordInput = document.getElementById("password");
+      const toggleIcon = document.querySelector(".toggle-password");
+
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        toggleIcon.textContent = "🙈";
+      } else {
+        passwordInput.type = "password";
+        toggleIcon.textContent = "👁️";
+      }
+    }
+  </script>
+</body>
+
+</html>

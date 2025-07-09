@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel - Student Attendance</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif; /* Changed to Inter */
+            padding: 20px;
+            background-color: #f5f9fc; /* Light blue-gray background */
+            color: #2c3e50;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            text-align: center;
+            color: #1a5276;
+            margin-bottom: 25px;
+            font-size: 28px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #34495e;
+            margin-bottom: 15px;
+            font-size: 22px;
+            border-bottom: 1px dashed #d6eaf8;
+            padding-bottom: 8px;
+        }
+
+        form,
+        .section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-top: 4px solid #2980b9; /* Distinct top border */
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select {
+            width: calc(100% - 20px); /* Adjust for padding */
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #d6eaf8;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #f8f9fa;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232980b9'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 30px;
+        }
+
+        button {
+            margin-top: 20px;
+            background-color: #28a745; /* Green for primary actions */
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Specific button colors */
+        #removeTeacherForm button {
+            background-color: #dc3545; /* Red for destructive actions */
+        }
+        #removeTeacherForm button:hover {
+            background-color: #c82333;
+        }
+        #logoutBtn {
+            background-color: #e74c3c;
+            margin-top: 20px;
+            width: auto;
+            padding: 10px 20px;
+        }
+        #logoutBtn:hover {
+            background-color: #c0392b;
+        }
+
+        .teacher-list {
+            margin-top: 10px;
+        }
+        
+        /* Checkbox styling for days of week */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            font-weight: normal;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        /* Modal for messages instead of alert() */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+        }
+
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+
+        .modal-header {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .modal-body {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            text-align: right;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            form, .section {
+                padding: 15px;
+            }
+            input, select, button {
+                width: 100%;
+            }
+            .checkbox-group {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="modalCloseButton">&times;</span>
+            <div class="modal-header" id="modalHeader">Message</div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button id="modalOkButton">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <h2>Admin Panel</h2>
+
+    <div class="section">
+        <h3><i class="fas fa-user-plus"></i> Add Teacher</h3>
+        <form id="addTeacherForm">
+            <label>Name:</label>
+            <input type="text" id="teacherName" required />
+            <label>Email:</label>
+            <input type="email" id="teacherEmail" required />
+            <label>Password:</label>
+            <input type="password" id="teacherPassword" required minlength="6" />
+            <button type="submit"><i class="fas fa-plus-circle"></i> Add Teacher</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3><i class="fas fa-user-minus"></i> Remove Teacher</h3>
+        <form id="removeTeacherForm">
+            <label>Select Teacher to Remove:</label>
+            <select id="teacherSelect"></select>
+            <button type="submit"><i class="fas fa-trash-alt"></i> Remove Teacher</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3><i class="fas fa-book-reader"></i> Assign Subject to Teacher</h3>
+        <form id="assignSubjectForm">
+            <label>Teacher Email:</label>
+            <input type="email" id="assignEmail" placeholder="Teacher's email" required />
+            <label>Subject:</label>
+            <input type="text" id="assignSubject" placeholder="e.g., Data Structures" required />
+            <label>Department:</label>
+            <input type="text" id="assignDept" placeholder="e.g., CSE" required />
+            <label>Semester:</label>
+            <input type="text" id="assignSemester" placeholder="e.g., 5" required />
+            <label>Type (Lecture/Lab):</label>
+            <select id="assignType">
+                <option value="Lecture">Lecture</option>
+                <option value="Lab">Lab</option>
+            </select>
+            <label>Days of Week (Select all that apply):</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="assignDays" value="Monday"> Mon</label>
+                <label><input type="checkbox" name="assignDays" value="Tuesday"> Tue</label>
+                <label><input type="checkbox" name="assignDays" value="Wednesday"> Wed</label>
+                <label><input type="checkbox" name="assignDays" value="Thursday"> Thu</label>
+                <label><input type="checkbox" name="assignDays" value="Friday"> Fri</label>
+                <label><input type="checkbox" name="assignDays" value="Saturday"> Sat</label>
+                <label><input type="checkbox" name="assignDays" value="Sunday"> Sun</label>
+            </div>
+            <label>Time Slot (e.g., 09:00 - 10:00 AM):</label>
+            <input type="text" id="assignTime" placeholder="e.g., 09:00 AM - 10:00 AM" required />
+            <button type="submit"><i class="fas fa-link"></i> Assign</button>
+        </form>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            onAuthStateChanged,
+            signOut,
+            signInWithCustomToken, // For Canvas environment
+            signInAnonymously      // For Canvas environment
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            doc,
+            setDoc,
+            deleteDoc,
+            getDocs,
+            query,
+            where,
+            getDoc // Make sure getDoc is imported here
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Canvas Environment Variables ---
+        // MANDATORY: Use __app_id, __firebase_config, __initial_auth_token
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // Fallback for local testing if __firebase_config is not defined
+            apiKey: "AIzaSyBgXG-oIsLygIUwC4H5xUcduHqWa1Kba5w",
+            authDomain: "studentattendancesystem-e3f6c.firebaseapp.com",
+            projectId: "studentattendancesystem-e3f6c",
+            storageBucket: "studentattendancesystem-e3f6c.appspot.com",
+            messagingSenderId: "385675923275",
+            appId: "1:385675923275:web:945301f83c5a7d182162ce",
+            measurementId: "G-DM0VLMVNTM"
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app); // Pass app to getAuth
+        const db = getFirestore(app); // Pass app to getFirestore
+
+        // --- Modal Functions (Instead of alert()) ---
+        function showModal(header, body) {
+            document.getElementById('modalHeader').textContent = header;
+            document.getElementById('modalBody').textContent = body;
+            document.getElementById('messageModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('messageModal').style.display = 'none';
+        }
+
+        // Add event listeners for modal close buttons
+        document.getElementById("modalCloseButton").addEventListener("click", closeModal);
+        document.getElementById("modalOkButton").addEventListener("click", closeModal);
+
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Attempt to sign in with custom token first (Canvas environment)
+                if (initialAuthToken) {
+                    try {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("DEBUG Admin: Signed in with custom token.");
+                        // The onAuthStateChanged listener will re-fire with the authenticated user
+                        return;
+                    } catch (error) {
+                        console.error("DEBUG Admin: Error signing in with custom token:", error);
+                        showModal("Authentication Error", "Failed to authenticate. Please log in again.");
+                        window.location.href = "index.html"; // Redirect to login on error
+                        return;
+                    }
+                } else {
+                    // Fallback to anonymous sign-in for local development/testing without token
+                    try {
+                        await signInAnonymously(auth);
+                        console.log("DEBUG Admin: Signed in anonymously.");
+                        // The onAuthStateChanged listener will re-fire with the authenticated user
+                        return;
+                    } catch (error) {
+                        console.error("DEBUG Admin: Error signing in anonymously:", error);
+                        showModal("Authentication Error", "Failed to sign in anonymously. Please log in.");
+                        window.location.href = "index.html";
+                        return;
+                    }
+                }
+            }
+
+            // After successful authentication, check user role in Firestore
+            // MODIFIED: Use root-level path for 'users' collection
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (!userDocSnap.exists() || userDocSnap.data().role !== "admin") {
+                showModal("Access Denied", "You do not have admin privileges.");
+                await signOut(auth); // Sign out unauthorized user
+                window.location.href = "index.html"; // Redirect to login
+                return;
+            }
+
+            // If user is admin, proceed to load teachers and set up forms
+            loadTeachers();
+
+            document.getElementById("addTeacherForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const name = document.getElementById("teacherName").value;
+                const email = document.getElementById("teacherEmail").value;
+                const password = document.getElementById("teacherPassword").value;
+
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const uid = userCredential.user.uid;
+
+                    // MODIFIED: Use root-level path for 'users' collection
+                    await setDoc(doc(db, "users", uid), {
+                        name,
+                        email,
+                        role: "teacher"
+                    });
+
+                    showModal("Success", "Teacher added successfully!");
+                    loadTeachers();
+                    e.target.reset();
+                } catch (error) {
+                    showModal("Error", "Error adding teacher: " + error.message);
+                    console.error("Error adding teacher:", error);
+                }
+            });
+
+            document.getElementById("removeTeacherForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const teacherId = document.getElementById("teacherSelect").value;
+                if (!teacherId) {
+                    showModal("Info", "Please select a teacher to remove.");
+                    return;
+                }
+
+                // IMPORTANT: For full security, you should use a Firebase Cloud Function
+                // to delete the user from Firebase Authentication as client-side SDKs
+                // cannot delete other users' auth accounts directly.
+                // The Firestore document deletion below is allowed by your rules for admin,
+                // but won't remove the auth account.
+
+                try {
+                    // MODIFIED: Use root-level path for 'users' collection
+                    await deleteDoc(doc(db, "users", teacherId));
+                    showModal("Success", "Teacher Firestore document removed. (Full user deletion from Authentication requires a Cloud Function).");
+                    loadTeachers(); // Reload list after deletion
+                } catch (error) {
+                    showModal("Error", "Error removing teacher: " + error.message);
+                    console.error("Error removing teacher:", error);
+                }
+            });
+
+            document.getElementById("assignSubjectForm").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const email = document.getElementById("assignEmail").value;
+                const subject = document.getElementById("assignSubject").value;
+                const dept = document.getElementById("assignDept").value;
+                const sem = document.getElementById("assignSemester").value;
+                const type = document.getElementById("assignType").value;
+                const selectedDays = Array.from(document.querySelectorAll('input[name="assignDays"]:checked')).map(cb => cb.value);
+                const time = document.getElementById("assignTime").value;
+
+                if (selectedDays.length === 0) {
+                    showModal("Validation Error", "Please select at least one day of the week.");
+                    return;
+                }
+                if (!time.trim()) {
+                    showModal("Validation Error", "Please enter a time slot.");
+                    return;
+                }
+
+                try {
+                    // MODIFIED: Use root-level path for 'users' collection
+                    const usersQuery = query(collection(db, "users"), where("email", "==", email), where("role", "==", "teacher"));
+                    const snapshot = await getDocs(usersQuery);
+
+                    if (snapshot.empty) {
+                        showModal("Not Found", "Teacher not found with that email or is not a teacher.");
+                        return;
+                    }
+
+                    let teacherID;
+                    snapshot.forEach(doc => teacherID = doc.id); // Get the teacher's UID
+
+                    // MODIFIED: Use root-level path for 'assignments' collection
+                    // doc(collection(db, "assignments")) without a specific ID will auto-generate one.
+                    await setDoc(doc(collection(db, "assignments")), {
+                        teacherId: teacherID,
+                        email,
+                        subject,
+                        department: dept,
+                        semester: sem,
+                        type,
+                        days: selectedDays,
+                        time: time
+                    });
+
+                    showModal("Success", "Subject and Time Table assigned successfully!");
+                    e.target.reset();
+                } catch (error) {
+                    showModal("Error", "Error assigning subject: " + error.message);
+                    console.error("Error assigning subject:", error);
+                }
+            });
+
+            // --- Function to Load Teachers for the dropdown ---
+            async function loadTeachers() {
+                try {
+                    // MODIFIED: Use root-level path for 'users' collection
+                    const q = query(collection(db, "users"), where("role", "==", "teacher"));
+                    const snapshot = await getDocs(q);
+                    const select = document.getElementById("teacherSelect");
+                    select.innerHTML = ""; // Clear existing options
+
+                    if (snapshot.empty) {
+                        const option = document.createElement("option");
+                        option.value = "";
+                        option.textContent = "No teachers found";
+                        select.appendChild(option);
+                        select.disabled = true;
+                        return;
+                    }
+
+                    select.disabled = false;
+                    snapshot.forEach(doc => {
+                        const option = document.createElement("option");
+                        option.value = doc.id; // Store UID as value
+                        option.textContent = `${doc.data().name} (${doc.data().email})`;
+                        select.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error("Error loading teachers:", error);
+                    showModal("Error", "Failed to load teacher list: " + error.message);
+                }
+            }
+        }); // End of onAuthStateChanged
+
+        // Logout button listener
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+            try {
+                await signOut(auth);
+                window.location.href = "index.html";
+            } catch (error) {
+                console.error("Error signing out:", error);
+                showModal("Error", "Error signing out: " + error.message);
+            }
+        });
+    </script>
+</body>
+
+</html>
