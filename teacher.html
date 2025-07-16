@@ -746,57 +746,102 @@
 
     // --- Function to Load Assigned Subjects for the Teacher ---
     async function loadAssignedSubjects() {
-        subjectSelect.innerHTML = ""; // Clear existing options
-        const dept = departmentSelect.value;
-        const sem = semesterSelect.value;
+    subjectSelect.innerHTML = ""; // Clear existing options
+    const dept = departmentSelect.value;
+    const sem = semesterSelect.value;
 
-        console.log("DEBUG Teacher: Attempting to load subjects for:", { dept, sem, teacher: currentTeacherId });
+    console.log("DEBUG Teacher: Attempting to load subjects for:", { dept, sem, teacher: currentTeacherId });
 
-        // MODIFIED: Changed path to root-level 'assignments'
-        const q = query(collection(db, "assignments"),
-            where("teacherId", "==", currentTeacherId),
-            where("department", "==", dept),
-            where("semester", "==", sem)
-        );
+    // MODIFIED: Changed path to root-level 'assignments'
+    const q = query(collection(db, "assignments"),
+        where("teacherId", "==", currentTeacherId),
+        where("department", "==", dept),
+        where("semester", "==", sem),
+    );
 
-        try {
-            const snapshot = await getDocs(q);
-            weeklyAssignments = []; // Reset weekly assignments array before populating
+    try {
+        const snapshot = await getDocs(q);
 
-            if (snapshot.empty) {
-                const option = document.createElement("option");
-                option.value = "";
-                option.textContent = `No subjects assigned for this selection.`;
-                subjectSelect.appendChild(option);
-                subjectSelect.disabled = true; // Disable subject selection if no assignments
-                console.log("DEBUG Teacher: No subjects found for current criteria.");
-                return;
+        console.log("DEBUG Teacher: Assignments query executed. Snapshot size:", snapshot.size);
+        weeklyAssignments = []; // Reset weekly assignments array before populating
+
+        if (snapshot.empty) {
+            console.log("DEBUG Teacher: Snapshot is empty. No subjects found for current criteria.");
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = `No subjects assigned for this selection.`;
+            subjectSelect.appendChild(option);
+            subjectSelect.disabled = true; // Disable subject selection if no assignments
+            return;
+        }
+
+        subjectSelect.disabled = false; // Enable subject selection
+
+        // --- START NEW/MODIFIED LOGIC for Day-Wise Sorting ---
+        const fetchedAssignments = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            fetchedAssignments.push(data);
+        });
+
+        // Define the desired order of days
+        const dayOrder = {
+            "Monday": 0,
+            "Tuesday": 1,
+            "Wednesday": 2,
+            "Thursday": 3,
+            "Friday": 4,
+            "Saturday": 5,
+            "Sunday": 6
+        };
+
+        // Sort the fetched assignments by the first day listed in their 'days' array
+        // and then by time if days are the same.
+        fetchedAssignments.sort((a, b) => {
+            // Get the first day for comparison, default to empty string if not available
+            const dayA = a.days && a.days.length > 0 ? a.days[0] : "";
+            const dayB = b.days && b.days.length > 0 ? b.days[0] : "";
+
+            // Get the numerical order for the days, default to a high number to put unknown days last
+            const orderA = dayOrder[dayA] !== undefined ? dayOrder[dayA] : 99;
+            const orderB = dayOrder[dayB] !== undefined ? dayOrder[dayB] : 99;
+
+            // Primary sort: by day of the week
+            if (orderA !== orderB) {
+                return orderA - orderB;
             }
 
-            subjectSelect.disabled = false; // Enable subject selection
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                weeklyAssignments.push(data); // Store all fetched assignments for date validation
-                const option = document.createElement("option");
-                // Combine subject, type, time, and assigned days into the option's value
-                option.value = `${data.subject}__${data.type}__${data.time}__${data.days.join(',')}`;
-                option.textContent = `${data.subject} (${data.type}) - ${data.time} (${data.days.join(', ')})`;
-                subjectSelect.appendChild(option);
-            });
-            console.log("DEBUG Teacher: Successfully fetched and processed assignments:", weeklyAssignments);
+            // Secondary sort: if days are the same, sort by time
+            // Assuming time is always "HH:MM-HH:MM AM/PM" and sorts lexicographically
+            // Use optional chaining and nullish coalescing for robustness
+            return (a.time || "").localeCompare(b.time || "");
+        });
+        // --- END NEW/MODIFIED LOGIC ---
 
-            // After loading subjects, always update date picker restrictions and check for missing attendance
-            updateDatePickerRestrictions();
-            checkAndHighlightMissingAttendance();
-            populateViewSubjectDropdown(); // Update view subjects when assignments change
-        } catch (error) {
-            console.error("DEBUG Teacher: Detailed error loading assigned subjects:", error);
-            subjectSelect.innerHTML = "<option value=''>Error loading subjects</option>";
-            subjectSelect.disabled = true;
-            showModal("Error", "Error loading subjects: " + error.message);
-        }
+        // Now populate the dropdown and weeklyAssignments from the sorted array
+        fetchedAssignments.forEach(data => { // Loop through the sorted data
+            weeklyAssignments.push(data); // Store all fetched assignments for date validation
+            const option = document.createElement("option");
+            // Combine subject, type, time, and assigned days into the option's value
+            option.value = `${data.subject}__${data.type}__${data.time}__${data.days.join(',')}`;
+            option.textContent = `${data.subject} (${data.type}) - ${data.time} (${data.days.join(', ')})`;
+            subjectSelect.appendChild(option);
+        });
+
+        console.log("DEBUG Teacher: Successfully fetched and processed assignments (sorted):", weeklyAssignments);
+
+        // After loading subjects, always update date picker restrictions and check for missing attendance
+        updateDatePickerRestrictions();
+        checkAndHighlightMissingAttendance();
+        populateViewSubjectDropdown(); // Update view subjects when assignments change
+    } catch (error) {
+        console.error("DEBUG Teacher: Detailed error loading assigned subjects:", error);
+        subjectSelect.innerHTML = "<option value=''>Error loading subjects</option>";
+        subjectSelect.disabled = true;
+        // Assuming showModal is defined and preferred for messages
+        showModal("Error", "Error loading subjects: " + error.message);
     }
-
+}
     // --- Date Utility Functions ---
     // Formats a Date object to "YYYY-MM-DD" string
     function formatDate(date) {
@@ -1499,6 +1544,33 @@
             resultsDiv.innerHTML = '<p>Error loading attendance records.</p>';
         }
     }
+//     function timeToMinutes(timeStr) {
+//     const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+//     if (!match) return 0;
+//     let [_, h, m, p] = match;
+//     h = parseInt(h, 10);
+//     m = parseInt(m, 10);
+//     if (p.toUpperCase() === "PM" && h !== 12) h += 12;
+//     if (p.toUpperCase() === "AM" && h === 12) h = 0;
+//     return h * 60 + m;
+//   }
+
+//      function sortAndLoadSubjects(subjects) {
+//     const dayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+//     subjects.sort((a, b) => {
+//       const dayDiff = dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
+//       if (dayDiff !== 0) return dayDiff;
+//       return timeToMinutes(a.time) - timeToMinutes(b.time);
+//     });
+//     subjectSelect.innerHTML = "";
+//     subjects.forEach(item => {
+//       const option = document.createElement("option");
+//       option.value = `${item.subject}__${item.type}__${item.time}__${item.day}`;
+//       option.textContent = `${item.subject} (${item.type}) - ${item.time} (${item.day})`;
+//       subjectSelect.appendChild(option);
+//     });
+//   }
+  
     document.getElementById("attendanceDate").addEventListener("change", function () {
         const selectedDate = new Date(this.value);
         const dayName = selectedDate.toLocaleDateString("en-US", { weekday: "long" });
