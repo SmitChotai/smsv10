@@ -465,7 +465,11 @@
                 <option value="Lecture">Lecture</option>
                 <option value="Lab">Lab</option>
             </select>
-
+            <label for="labSectionSelect" id="labSectionLabel" style="display:none;">Lab Section:</label>
+    <select id="labSectionSelect" style="display:none;">
+    <option value="A">CSE -1 </option>
+    <option value="B">CSE -2</option>
+    </select>
         <label for="attendanceDate">Date:</label>
         <input type="date" id="attendanceDate" />
 
@@ -667,6 +671,8 @@
     const attendanceDateInput = document.getElementById("attendanceDate");
     const classTypeSelect = document.getElementById("classType");
     const attendanceForm = document.getElementById("attendanceForm");
+  const labSectionSelect = document.getElementById("labSectionSelect");
+  const labSectionLabel = document.getElementById("labSectionLabel");
 
     let weeklyAssignments = []; // Stores all assignments for the current teacher, dept, sem for the week
     let studentDataMap = {}; // Stores student data fetched by loadStudents for easy lookup by ID
@@ -967,123 +973,136 @@
 
     // --- Function to Load Students into the Form ---
     async function loadStudents() {
-        const department = departmentSelect.value;
-        const semester = semesterSelect.value;
-        const form = document.getElementById("attendanceForm");
-        form.innerHTML = `
-                <div class="attendance-actions">
-                    <button type="button" id="markAllPresentBtn" style="background-color: #28a745;"><i class="fas fa-check-double"></i> Mark All Present</button>
-                    <button type="button" id="markAllAbsentBtn" style="background-color: #dc3545;"><i class="fas fa-times-circle"></i> Mark All Absent</button>
-                </div>
-            `; // Clear previous student list and re-add buttons
+    const department = departmentSelect.value;
+    const semester = semesterSelect.value;
+    const form = document.getElementById("attendanceForm");
 
-        // Re-attach listeners for new buttons
-        document.getElementById("markAllPresentBtn").addEventListener("click", markAllPresent);
-        document.getElementById("markAllAbsentBtn").addEventListener("click", markAllAbsent);
+    form.innerHTML = `
+        <div class="attendance-actions">
+            <button type="button" id="markAllPresentBtn" style="background-color: #28a745;">
+                <i class="fas fa-check-double"></i> Mark All Present
+            </button>
+            <button type="button" id="markAllAbsentBtn" style="background-color: #dc3545;">
+                <i class="fas fa-times-circle"></i> Mark All Absent
+            </button>
+        </div>
+    `;
 
+    document.getElementById("markAllPresentBtn").addEventListener("click", markAllPresent);
+    document.getElementById("markAllAbsentBtn").addEventListener("click", markAllAbsent);
 
-        // Pre-validation for loading students
-        const selectedSubjectInfo = subjectSelect.value.split("__");
-        if (!selectedSubjectInfo[0] || !attendanceDateInput.value) {
-            showModal("Selection Required", "Please select a Subject and a Date before loading students.");
-            console.log("DEBUG Teacher: Pre-validation failed: Subject or Date not selected.");
+    const selectedSubjectInfo = subjectSelect.value.split("__");
+    if (!selectedSubjectInfo[0] || !attendanceDateInput.value) {
+        showModal("Selection Required", "Please select a Subject and a Date before loading students.");
+        console.log("DEBUG Teacher: Pre-validation failed: Subject or Date not selected.");
+        return;
+    }
+
+    studentDataMap = {};
+
+    console.log("DEBUG Teacher: Attempting to load students for Dept:", department, "Sem:", semester);
+
+    try {
+        const q = query(
+            collection(db, "users"),
+            where("role", "==", "student"),
+            where("department", "==", department),
+            where("semester", "==", semester),
+            orderBy("enrollno")
+        );
+
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            const noStudentsMessage = document.createElement("p");
+            noStudentsMessage.textContent = `No students found for selected department (${department}) & semester (${semester}).`;
+            form.appendChild(noStudentsMessage);
+            console.log("DEBUG Teacher: No students found.");
             return;
         }
 
-        // Clear studentDataMap before loading new students
-        studentDataMap = {}; // Reset the map
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        thead.innerHTML = `
+            <tr>
+                <th>Enroll No</th>
+                <th>Name</th>
+                <th>Present</th>
+                <th>Absent</th>
+            </tr>
+        `;
+        table.appendChild(thead);
 
-        console.log("DEBUG Teacher: Attempting to load students for Dept:", department, "Sem:", semester);
+        const tbody = document.createElement("tbody");
 
-        try {
-            // MODIFIED: Changed path to root-level 'users'
-            const q = query(
-                collection(db, "users"),
-                where("role", "==", "student"),
-                where("department", "==", department),
-                where("semester", "==", semester),
-                orderBy("enrollno") // Ensure 'enrollno' field exists for all students and is indexed.
-            );
+        const isLab = classTypeSelect.value === "Lab";
+        const selectedLabSection = labSectionSelect.value;
 
-            console.log("DEBUG Teacher: Firestore query for students:", q);
-            const snapshot = await getDocs(q);
+        snapshot.forEach(doc => {
+            const student = doc.data();
+            const id = doc.id;
+            const enroll = parseInt(student.enrollno);
+            studentDataMap[id] = student;
 
-            if (snapshot.empty) {
-                const noStudentsMessage = document.createElement("p");
-                noStudentsMessage.textContent = `No students found for selected department (${department}) & semester (${semester}).`;
-                form.appendChild(noStudentsMessage);
-                console.log("DEBUG Teacher: Student query snapshot is empty. No students found matching criteria.");
-                return;
+            // 🔁 Lab Section Filtering Logic
+            if (isLab) {
+                const inSectionA = enroll >= 234510331001 && enroll <= 234510331032;
+                const inSectionB = enroll >= 234510331035 && enroll <= 234510331066;
+
+                if ((selectedLabSection === "A" && !inSectionA) ||
+                    (selectedLabSection === "B" && !inSectionB)) {
+                    return; // Skip student not in selected lab section
+                }
             }
 
-            // Create table structure
-            const table = document.createElement("table");
-            const thead = document.createElement("thead");
-            thead.innerHTML = `
-                    <tr>
-                        <th>Enroll No</th>
-                        <th>Name</th>
-                        <th>Present</th>
-                        <th>Absent</th>
-                    </tr>
-                `;
-            table.appendChild(thead);
+            const row = document.createElement("tr");
 
-            const tbody = document.createElement("tbody");
+            const enrollTd = document.createElement("td");
+            enrollTd.textContent = student.enrollno || 'N/A';
+            const nameTd = document.createElement("td");
+            nameTd.textContent = student.name || 'N/A';
 
-            snapshot.forEach(doc => {
-                const student = doc.data();
-                const id = doc.id; // The UID of the student
-                studentDataMap[id] = student; // Store full student data by UID
+            const presentTd = document.createElement("td");
+            const presentRadio = document.createElement("input");
+            presentRadio.type = "radio";
+            presentRadio.name = id;
+            presentRadio.value = "Present";
+            presentRadio.required = true;
+            presentTd.appendChild(presentRadio);
 
-                const row = document.createElement("tr");
+            const absentTd = document.createElement("td");
+            const absentRadio = document.createElement("input");
+            absentRadio.type = "radio";
+            absentRadio.name = id;
+            absentRadio.value = "Absent";
+            absentTd.appendChild(absentRadio);
 
-                const enrollTd = document.createElement("td");
-                enrollTd.textContent = student.enrollno || 'N/A'; // Handle missing enrollno gracefully
-                const nameTd = document.createElement("td");
-                nameTd.textContent = student.name || 'N/A'; // Handle missing name gracefully
+            row.appendChild(enrollTd);
+            row.appendChild(nameTd);
+            row.appendChild(presentTd);
+            row.appendChild(absentTd);
+            tbody.appendChild(row);
+        });
 
-                const presentTd = document.createElement("td");
-                const presentRadio = document.createElement("input");
-                presentRadio.type = "radio";
-                presentRadio.name = id; // IMPORTANT: Use student ID as name for radio group
-                presentRadio.value = "Present";
-                presentRadio.required = true; // Makes sure at least one radio is selected for each student ID
-                presentTd.appendChild(presentRadio);
+        table.appendChild(tbody);
+        form.appendChild(table);
 
-                const absentTd = document.createElement("td");
-                const absentRadio = document.createElement("input");
-                absentRadio.type = "radio";
-                absentRadio.name = id; // IMPORTANT: Use student ID as name for radio group
-                absentRadio.value = "Absent";
-                absentTd.appendChild(absentRadio);
+        console.log(`DEBUG Teacher: Loaded students (after lab filter): ${tbody.children.length}`);
 
-                row.appendChild(enrollTd);
-                row.appendChild(nameTd);
-                row.appendChild(presentTd);
-                row.appendChild(absentTd);
+        const selectedSubject = selectedSubjectInfo[0];
+        const selectedType = selectedSubjectInfo[1];
+        const selectedDate = attendanceDateInput.value;
 
-                tbody.appendChild(row);
-            });
+        fetchAndPreFillAttendance(selectedSubject, selectedType, selectedDate);
 
-            table.appendChild(tbody);
-            form.appendChild(table);
-            console.log(`DEBUG Teacher: Successfully loaded ${snapshot.docs.length} students.`);
-
-            // Optional: Fetch and pre-fill existing attendance if it exists for the selected date/subject
-            const selectedSubject = selectedSubjectInfo[0];
-            const selectedType = selectedSubjectInfo[1];
-            const selectedDate = attendanceDateInput.value;
-            fetchAndPreFillAttendance(selectedSubject, selectedType, selectedDate);
-
-        } catch (error) {
-            console.error("DEBUG Teacher: Error fetching students:", error);
-            showModal("Error", "Error fetching student data. Please check console for details.");
-            const errorMessage = document.createElement("p");
-            errorMessage.textContent = "Error fetching student data. Please check console for details.";
-            form.appendChild(errorMessage);
-        }
+    } catch (error) {
+        console.error("DEBUG Teacher: Error fetching students:", error);
+        showModal("Error", "Error fetching student data. Please check console for details.");
+        const errorMessage = document.createElement("p");
+        errorMessage.textContent = "Error fetching student data. Please check console for details.";
+        form.appendChild(errorMessage);
     }
+}
 
     // --- Function to Fetch and Pre-fill Existing Attendance ---
     async function fetchAndPreFillAttendance(subject, type, date) {
@@ -1212,113 +1231,105 @@
 
     // --- Function to Submit Attendance ---
     async function submitAttendance() {
-        const department = departmentSelect.value;
-        const semester = semesterSelect.value;
-        const selectedSubjectInfo = subjectSelect.value.split("__");
-        const subject = selectedSubjectInfo[0];
-        const type = selectedSubjectInfo[1];
-        const time = selectedSubjectInfo[2]; // Get time from subject select value
-        const date = attendanceDateInput.value; // Use attendanceDateInput.value directly
+    const department = departmentSelect.value;
+    const semester = semesterSelect.value;
+    const selectedSubjectInfo = subjectSelect.value.split("__");
+    const subject = selectedSubjectInfo[0];
+    const type = selectedSubjectInfo[1];
+    const time = selectedSubjectInfo[2];
+    const date = attendanceDateInput.value;
+    const labSection = classTypeSelect.value === "Lab" ? labSectionSelect.value : null;
 
-        console.log("--- SUBMIT ATTENDANCE ATTEMPT ---");
-        console.log("DEBUG Teacher: Selected:", { subject, type, date, department, semester, time });
+    console.log("--- SUBMIT ATTENDANCE ATTEMPT ---");
+    console.log("DEBUG Teacher: Selected:", { subject, type, date, department, semester, time, labSection });
 
-        // 1. Basic validation: Ensure all necessary inputs are selected
-        if (!subject || !type || !date || !department || !semester || !time) {
-            showModal("Submission Error", "Please select Department, Semester, Subject, Type, and Date before submitting attendance.");
-            console.log("DEBUG Teacher: Validation Failed: Missing required fields.");
-            return;
-        }
-
-        // 2. Validate if the selected date is an assigned day for this subject/type
-        const selectedDayName = new Date(date).toLocaleString('en-US', { weekday: 'long' });
-        const isSubjectAssignedOnSelectedDay = weeklyAssignments.some(assignment =>
-            assignment.subject === subject &&
-            assignment.type === type &&
-            assignment.days.includes(selectedDayName)
-        );
-
-        if (!isSubjectAssignedOnSelectedDay) {
-            showModal("Submission Error", `The selected subject (${subject} - ${type}) is not assigned on ${selectedDayName}. Please choose a valid date or subject combination.`);
-            console.log("DEBUG Teacher: Validation Failed: Subject not assigned on selected day.");
-            return;
-        }
-
-        // Get all student rows from the attendance form
-        const studentRows = attendanceForm.querySelectorAll("tbody tr");
-        if (studentRows.length === 0) {
-            showModal("Submission Error", "No students loaded to submit attendance for. Please load students first.");
-            console.log("DEBUG Teacher: Submission Failed: No students found in the form.");
-            return;
-        }
-
-        const attendanceRecords = [];
-        let allStudentsMarked = true;
-
-        studentRows.forEach(row => {
-            // The name attribute of the radio buttons is the student's UID
-            const studentId = row.querySelector('input[type="radio"]').name;
-            const selectedStatus = document.querySelector(`input[name="${studentId}"]:checked`);
-
-            if (!selectedStatus) {
-                allStudentsMarked = false;
-                return; // Skip this student, allStudentsMarked will handle the overall alert
-            }
-
-            const studentData = studentDataMap[studentId]; // Get full student data from the map
-
-            if (!studentData) {
-                console.warn(`DEBUG Teacher: Student data not found in map for ID: ${studentId}`);
-                // Potentially show a warning to the user or skip this student
-                return;
-            }
-
-            attendanceRecords.push({
-                studentId: studentId,
-                teacherId: currentTeacherId,
-                department: department,
-                semester: semester,
-                subject: subject,
-                type: type,
-                date: date,
-                time: time, // Include time for more specific attendance records
-                status: selectedStatus.value,
-                // Include student details for easier querying later if needed
-                enrollno: studentData.enrollno || 'N/A',
-                studentName: studentData.name || 'N/A',
-                studentEmail: studentData.email || 'N/A'
-            });
-        });
-
-        if (!allStudentsMarked) {
-            showModal("Submission Error", "Please mark attendance (Present/Absent) for all students before submitting.");
-            console.log("DEBUG Teacher: Submission Failed: Not all students marked.");
-            return;
-        }
-
-        try {
-            // Use a batched write for efficiency when updating multiple documents
-            const batch = writeBatch(db);
-
-            for (const record of attendanceRecords) {
-                // Create a unique document ID for each attendance record to prevent duplicates
-                // Format: ATT_{date}_{subject_sanitized}_{type}_{studentId}
-                const attendanceDocId = `ATT_${record.date}_${record.subject.replace(/[^a-zA-Z0-9]/g, '')}_${record.type}_${record.time.replace(/[^a-zA-Z0-9]/g, '')}_${record.studentId}`;
-                // MODIFIED: Changed path to root-level 'attendance'
-                const attendanceRef = doc(db, "attendance", attendanceDocId);
-                batch.set(attendanceRef, record, { merge: true }); // merge: true to update existing records
-            }
-
-            await batch.commit();
-            showModal("Success", "Attendance submitted successfully!");
-            console.log("DEBUG Teacher: Attendance successfully submitted via batch write.");
-            checkAndHighlightMissingAttendance(); // Re-check missing attendance after submission
-
-        } catch (error) {
-            console.error("DEBUG Teacher: Error submitting attendance:", error);
-            showModal("Error", "Error submitting attendance: " + error.message);
-        }
+    if (!subject || !type || !date || !department || !semester || !time) {
+        showModal("Submission Error", "Please select Department, Semester, Subject, Type, and Date before submitting attendance.");
+        console.log("DEBUG Teacher: Validation Failed: Missing required fields.");
+        return;
     }
+
+    const selectedDayName = new Date(date).toLocaleString('en-US', { weekday: 'long' });
+    const isSubjectAssignedOnSelectedDay = weeklyAssignments.some(assignment =>
+        assignment.subject === subject &&
+        assignment.type === type &&
+        assignment.days.includes(selectedDayName)
+    );
+
+    if (!isSubjectAssignedOnSelectedDay) {
+        showModal("Submission Error", `The selected subject (${subject} - ${type}) is not assigned on ${selectedDayName}. Please choose a valid date or subject combination.`);
+        console.log("DEBUG Teacher: Validation Failed: Subject not assigned on selected day.");
+        return;
+    }
+
+    const studentRows = attendanceForm.querySelectorAll("tbody tr");
+    if (studentRows.length === 0) {
+        showModal("Submission Error", "No students loaded to submit attendance for. Please load students first.");
+        console.log("DEBUG Teacher: Submission Failed: No students found in the form.");
+        return;
+    }
+
+    const attendanceRecords = [];
+    let allStudentsMarked = true;
+
+    studentRows.forEach(row => {
+        const studentId = row.querySelector('input[type="radio"]').name;
+        const selectedStatus = document.querySelector(`input[name="${studentId}"]:checked`);
+
+        if (!selectedStatus) {
+            allStudentsMarked = false;
+            return;
+        }
+
+        const studentData = studentDataMap[studentId];
+        if (!studentData) {
+            console.warn(`DEBUG Teacher: Student data not found in map for ID: ${studentId}`);
+            return;
+        }
+
+        attendanceRecords.push({
+            studentId,
+            teacherId: currentTeacherId,
+            department,
+            semester,
+            subject,
+            type,
+            date,
+            time,
+            status: selectedStatus.value,
+            enrollno: studentData.enrollno || 'N/A',
+            studentName: studentData.name || 'N/A',
+            studentEmail: studentData.email || 'N/A',
+            labSection: labSection // Include only if Lab, else null
+        });
+    });
+
+    if (!allStudentsMarked) {
+        showModal("Submission Error", "Please mark attendance (Present/Absent) for all students before submitting.");
+        console.log("DEBUG Teacher: Submission Failed: Not all students marked.");
+        return;
+    }
+
+    try {
+        const batch = writeBatch(db);
+
+        for (const record of attendanceRecords) {
+            const attendanceDocId = `ATT_${record.date}_${record.subject.replace(/[^a-zA-Z0-9]/g, '')}_${record.type}_${record.time.replace(/[^a-zA-Z0-9]/g, '')}_${record.studentId}`;
+            const attendanceRef = doc(db, "attendance", attendanceDocId);
+            batch.set(attendanceRef, record, { merge: true });
+        }
+
+        await batch.commit();
+        showModal("Success", "Attendance submitted successfully!");
+        console.log("DEBUG Teacher: Attendance successfully submitted via batch write.");
+        checkAndHighlightMissingAttendance();
+
+    } catch (error) {
+        console.error("DEBUG Teacher: Error submitting attendance:", error);
+        showModal("Error", "Error submitting attendance: " + error.message);
+    }
+}
+
 
     // --- View Attendance Section Functions ---
 
@@ -1692,7 +1703,11 @@
     // The subjectSelect change listener is crucial for updating the date picker and maybe other UI elements
     subjectSelect.addEventListener("change", updateDatePickerRestrictions);
     classTypeSelect.addEventListener("change", updateDatePickerRestrictions);
-
+     classTypeSelect.addEventListener("change", () => {
+    const isLab = classTypeSelect.value === "Lab";
+    labSectionSelect.style.display = isLab ? "block" : "none";
+    labSectionLabel.style.display = isLab ? "block" : "none";
+  });
     attendanceDateInput.addEventListener("change", validateSelectedDateAgainstAssignments);
 
     document.getElementById("loadBtn").addEventListener("click", loadStudents);
