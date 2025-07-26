@@ -1441,11 +1441,12 @@
             let records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             let filteredRecords = records.filter(record => {
-                let matchesMonth = viewMonth ? record.date.startsWith(viewMonth) : true;
-                let matchesStudent = viewStudentSearch ?
-                    (record.studentName?.toLowerCase().includes(viewStudentSearch) ||
-                        record.enrollno?.toLowerCase().includes(viewStudentSearch)) : true;
-                return matchesMonth && matchesStudent;
+               let matchesStudent = viewStudentSearch ? (
+    (record.studentName?.toLowerCase().includes(viewStudentSearch)) ||
+    (String(record.enrollno || "").toLowerCase().includes(viewStudentSearch)) ||
+    (String(record.enrollno || "").toLowerCase().endsWith(viewStudentSearch))
+) : true;
+return matchesStudent;
             });
 
             filteredRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
