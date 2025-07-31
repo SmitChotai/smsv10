@@ -7,7 +7,8 @@
        
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Teacher - Mark Attendance</title>
-       
+       <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
         <style>
         /* Teacher Dashboard Styles */
@@ -584,8 +585,33 @@
 
        
     <hr>
-        <h2>📥 Download Attendance Sheet</h2>
-        <button id="downloadCsv">Download Attendance (CSV)</button>
+        <h3>📊 Attendance Report Filters</h3>
+
+    <label>Department: <select id="summaryDepartment">
+         <option value="">All</option>
+                                        <option value="CSE">CSE</option>
+                                        <option value="IT">IT</option>
+                                        <option value="CE">CE</option>
+    </select></label>
+<label>Semester: <select id="summarySemester">
+     
+                                            <option value="">All</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                        
+</select></label>
+<label>From: <input type="date" id="DStartDate"></label>
+<label>To: <input type="date" id="DEndDate"></label>
+<button id="downloadFormattedExcel">📥 Download Excel</button>
+
+
+
+
+
 
         <p>Total Classes: <span id="totalClasses">0</span></p>
         <p>Present: <span id="presentCount">0</span></p>
@@ -1655,54 +1681,115 @@ return matchesStudent;
         }
     });
 
-    document.getElementById("downloadCsv").addEventListener("click", async () => {
-        try {
-            const snapshot = await getDocs(collection(db, "attendance"));
-            const attendanceData = {};
-            const dateSet = new Set();
+document.getElementById("downloadFormattedExcel").addEventListener("click", async () => {
+      const department = document.getElementById("summaryDepartment").value.trim();
+      const semester = document.getElementById("summarySemester").value.trim();
+      const fromDate = document.getElementById("DStartDate").value;
+      const toDate = document.getElementById("DEndDate").value;
 
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const key = `${data.enrollno} - ${data.studentName}`;
-                if (!attendanceData[key]) attendanceData[key] = {};
-                attendanceData[key][data.date] = data.status;
-                dateSet.add(data.date);
-            });
+      if (!fromDate || !toDate || !semester || !department) {
+        alert("Please fill all fields.");
+        return;
+      }
 
-            const dates = Array.from(dateSet).sort();
-            const headers = ["Enrollment No - Name", ...dates, "Total Present", "Percentage"];
-            const rows = [headers];
+      try {
+        // const snapshot = await db.collection("attendance")
+        //   .where("department", "==", department)
+        //   .where("semester", "==", semester)
+        //   .get();
+        
+        
+        const q = query(
+  collection(db, "attendance"),
+  where("department", "==", department),
+  where("semester", "==", semester)
+);
 
-            for (const student in attendanceData) {
-                const row = [student];
-                let presentCount = 0;
+const snapshot = await getDocs(q);
+        const dataByStudent = {};
+        const allSubjects = new Set();
 
-                dates.forEach(date => {
-                    const status = attendanceData[student][date] || "Absent";
-                    row.push(status);
-                    if (status === "Present") presentCount++;
-                });
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          if (d.date < fromDate || d.date > toDate) return;
 
-                const percentage = ((presentCount / dates.length) * 100).toFixed(2) + "%";
-                row.push(presentCount, percentage);
-                rows.push(row);
-            }
+          if (!dataByStudent[d.enrollno]) {
+            dataByStudent[d.enrollno] = {
+              name: d.studentName || "",
+              subjects: {}
+            };
+          }
 
-            const csv = rows.map(r => r.join(",")).join("\n");
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
+          if (!dataByStudent[d.enrollno].subjects[d.subject]) {
+            dataByStudent[d.enrollno].subjects[d.subject] = {
+              Lec: { total: 0, present: 0 },
+              Lab: { total: 0, present: 0 }
+            };
+          }
 
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "Attendance_Summary.csv";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (err) {
-            alert("Error generating attendance sheet: " + err.message);
-            console.error(err);
-        }
+          allSubjects.add(d.subject);
+
+          const s = dataByStudent[d.enrollno].subjects[d.subject];
+          const typeKey = d.type === "Lab" ? "Lab" : "Lec";
+          s[typeKey].total++;
+          if (d.status === "Present") s[typeKey].present++;
+        });
+
+        const sortedSubjects = Array.from(allSubjects).sort();
+
+        const headers = [
+          "Sr No", "Enrollment No", "Name",
+          ...sortedSubjects.flatMap(subject => [
+            `${subject} Lec(P)`, `${subject} Lec(T)`, `${subject} Lab(P)`, `${subject} Lab(T)`, `${subject} Total(P)`, `${subject} Total(T)`
+          ]),
+          "Total Present", "Total Classes", "Percentage"
+        ];
+
+        const rows = [headers];
+        let sr = 1;
+
+        Object.keys(dataByStudent).sort().forEach(enrollno => {
+          const student = dataByStudent[enrollno];
+          const row = [sr++, enrollno, student.name];
+          let grandP = 0, grandT = 0;
+
+          sortedSubjects.forEach(subject => {
+            const subjData = student.subjects?.[subject] || {};
+            const lec = subjData.Lec || { total: 0, present: 0 };
+            const lab = subjData.Lab || { total: 0, present: 0 };
+
+            const lecP = lec.present || 0;
+            const lecT = lec.total || 0;
+            const labP = lab.present || 0;
+            const labT = lab.total || 0;
+            const totalP = lecP + labP;
+            const totalT = lecT + labT;
+            grandP += totalP;
+            grandT += totalT;
+
+            row.push(lecP, lecT, labP, labT, totalP, totalT);
+          });
+
+          const percent = grandT > 0 ? ((grandP / grandT) * 100).toFixed(2) + "%" : "N/A";
+          row.push(grandP, grandT, percent);
+          rows.push(row);
+        });
+
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Summary");
+        XLSX.writeFile(workbook, `Attendance_${department}_Sem${semester}.xlsx`);
+      } catch (err) {
+        console.error("Excel Export Error:", err);
+        alert("Failed to generate Excel: " + err.message);
+      }
     });
+
+
+
+
+
+
     // Summary Feature
 
     // Edit Attendance Feature
