@@ -260,7 +260,7 @@
         <div class="modal-content">
             <span class="close-button" id="modalCloseButton">&times;</span>
             <div class="modal-header" id="modalHeader">Message</div>
-            <div class="modal-body" id="modalBody">Logged in! Time to stay on track.</div>
+            <div class="modal-body" id="modalBody">Hey!</div>
             <div class="modal-footer">
                 <button id="modalOkButton">OK</button>
             </div>
@@ -285,7 +285,29 @@
     </table>
 
     <h3>Overall Attendance: <span id="overallAttendance">0%</span></h3>
-    <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+
+
+<!-- Detailed Absence Table Here if needed -->
+<div id="absenceDetails"></div>
+
+<!-- Logout button placed at the very end
+<div style="text-align: center; margin-top: 40px;">
+  <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+</div> -->
+
+      <!-- <h3>Absence Details</h3>
+<table id="absenceTable">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Subject</th>
+      <th>Type</th>
+      <th>Time</th>
+      <th>Day</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table> -->
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -324,213 +346,176 @@
         function closeModal() {
             document.getElementById('messageModal').style.display = 'none';
         }
-
+        
         // Add event listeners for modal close buttons
         document.getElementById("modalCloseButton").addEventListener("click", closeModal);
         document.getElementById("modalOkButton").addEventListener("click", closeModal);
 
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                // Try to sign in with custom token if available (for Canvas environment)
-                if (initialAuthToken) {
-                    try {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        console.log("DEBUG Student: Signed in with custom token.");
-                        // Re-trigger onAuthStateChanged with the new user
-                        return;
-                    } catch (error) {
-                        console.error("DEBUG Student: Error signing in with custom token:", error);
-                        showModal("Authentication Error", "Failed to authenticate. Please log in again.");
-                        window.location.href = "index.html"; // Redirect to login
-                        return;
-                    }
-                } else {
-                    // Sign in anonymously if no custom token (e.g., for local dev where auth is not strictly set up)
-                    try {
-                        await signInAnonymously(auth);
-                        console.log("DEBUG Student: Signed in anonymously.");
-                        // Re-trigger onAuthStateChanged with the new user
-                        return;
-                    } catch (error) {
-                        console.error("DEBUG Student: Error signing in anonymously:", error);
-                        showModal("Authentication Error", "Failed to sign in anonymously. Please log in.");
-                        window.location.href = "index.html";
-                        return;
-                    }
-                }
-            }
+       onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        showModal("Authentication Required", "Please log in.");
+        window.location.href = "index.html";
+        return;
+    }
 
-            const studentEmail = user.email;
-            const studentUid = user.uid;
-            emailDisplay.textContent = `Logged in as: ${studentEmail}`;
+    const studentEmail = user.email;
+    const studentUid = user.uid;
+    emailDisplay.textContent = `Logged in as: ${studentEmail}`;
 
-            let department = null;
-            let semester = null;
+    let department = null;
+    let semester = null;
+    const attendanceTable = document.getElementById("attendanceTable");
 
-            try {
-                // Fetch student's department and semester from the 'users' collection
-                // MODIFIED: Changed path to root-level 'users' as per current Firebase structure in image
-                const studentDocRef = doc(db, `users`, studentUid);
-                const studentDocSnap = await getDoc(studentDocRef);
+    try {
+        const studentDoc = await getDoc(doc(db, "users", studentUid));
+        if (!studentDoc.exists()) throw new Error("Student data not found");
 
-                if (!studentDocSnap.exists() || studentDocSnap.data().role !== "student") {
-                    showModal("Access Denied", "Student record not found or unauthorized access.");
-                    await signOut(auth); // Sign out if not a student or record is missing
-                    window.location.href = "index.html";
-                    return;
-                }
+        const studentData = studentDoc.data();
+        department = studentData.department;
+        semester = studentData.semester;
 
-                const studentData = studentDocSnap.data();
-                department = studentData.department;
-                semester = studentData.semester;
+        const assignmentsSnap = await getDocs(query(
+            collection(db, "assignments"),
+            where("department", "==", department),
+            where("semester", "==", semester)
+        ));
 
-                if (!department || !semester) {
-                    showModal("Information Missing", "Student department or semester information is missing. Please contact administration.");
-                    overallDisplay.textContent = `0%`;
-                    attendanceTable.innerHTML = `<tr><td colspan="5">Student profile incomplete. Please contact administration.</td></tr>`;
-                    return;
-                }
-
-            } catch (error) {
-                console.error("Error fetching student profile:", error);
-                showModal("Error", "Error loading student profile. Please try again or contact support.");
-                overallDisplay.textContent = `0%`;
-                attendanceTable.innerHTML = `<tr><td colspan="5">Failed to load student profile.</td></tr>`;
-                return;
-            }
-
-            const assignedSubjects = [];
-            try {
-                // Fetch relevant assignments for this student's department and semester.
-                // This is crucial to know which subjects to count attendance for.
-                // MODIFIED: Changed path to root-level 'assignments' as per current Firebase structure in image
-                const assignmentsSnap = await getDocs(query(
-                    collection(db, `assignments`),
-                    where("department", "==", department),
-                    where("semester", "==", semester)
-                ));
-
-                if (assignmentsSnap.empty) {
-                    console.warn("No assignments found for this student's department/semester combination.");
-                    showModal("No Classes", "No classes are currently assigned for your department and semester. Attendance cannot be calculated.");
-                    overallDisplay.textContent = `0%`;
-                    attendanceTable.innerHTML = `<tr><td colspan="5">No classes found for your department and semester.</td></tr>`;
-                    return;
-                }
-
-                const uniqueSubjects = new Set();
-                assignmentsSnap.forEach((doc) => {
-                    const data = doc.data();
-                    if (data.subject && data.type) {
-                        const subjectTypeKey = `${data.subject}__${data.type}`;
-                        if (!uniqueSubjects.has(subjectTypeKey)) {
-                            assignedSubjects.push({ subject: data.subject, type: data.type });
-                            uniqueSubjects.add(subjectTypeKey);
-                        }
-                    } else {
-                        console.warn("Assignment document missing subject or type field:", doc.id, data);
-                    }
-                });
-                console.log("Assigned subjects for student (derived from assignments):", assignedSubjects);
-
-            } catch (error) {
-                console.error("Error fetching assigned subjects from assignments:", error);
-                showModal("Error", "Error loading your assigned subjects. Please try again.");
-                overallDisplay.textContent = `0%`;
-                attendanceTable.innerHTML = `<tr><td colspan="5">Failed to load subject data.</td></tr>`;
-                return;
-            }
-
-            const attendanceCounts = {};
-            let totalPresent = 0;
-            let totalClasses = 0;
-
-            try {
-                // Query the 'attendance' collection directly using where clause for studentId
-                // MODIFIED: Changed path to root-level 'attendance' as per current Firebase structure in image
-                const q = query(
-                    collection(db, `attendance`),
-                    where("studentId", "==", studentUid),
-                    where("department", "==", department),
-                    where("semester", "==", semester)
-                );
-
-                const attendanceSnap = await getDocs(q);
-
-                if (attendanceSnap.empty) {
-                    console.log("No attendance records found for this student.");
-                    attendanceTable.innerHTML = `<tr><td colspan="5">No attendance records found yet.</td></tr>`;
-                    overallDisplay.textContent = `0%`;
-                    return;
-                }
-
-                attendanceSnap.forEach((doc) => {
-                    const record = doc.data();
-                    // Ensure the record belongs to one of the student's assigned subjects
-                    const isAssigned = assignedSubjects.some(s =>
-                        s.subject === record.subject && s.type === record.type
-                    );
-
-                    if (isAssigned) {
-                        const key = `${record.subject}_${record.type}`;
-
-                        if (!attendanceCounts[key]) {
-                            attendanceCounts[key] = { subject: record.subject, type: record.type, present: 0, total: 0 };
-                        }
-
-                        attendanceCounts[key].total++;
-                        totalClasses++;
-
-                        if (record.status === "Present") {
-                            attendanceCounts[key].present++;
-                            totalPresent++;
-                        }
-                    } else {
-                        console.warn(`Skipping attendance record for unassigned subject: ${record.subject} (${record.type})`);
-                    }
-                });
-
-                // Render attendance table
-                if (Object.keys(attendanceCounts).length === 0) {
-                    attendanceTable.innerHTML = `<tr><td colspan="5">No relevant attendance records found.</td></tr>`;
-                } else {
-                    attendanceTable.innerHTML = ""; // Clear any previous content
-                    for (const key in attendanceCounts) {
-                        const { subject, type, present, total } = attendanceCounts[key];
-                        const percent = total === 0 ? 0 : ((present / total) * 100).toFixed(1);
-
-                        attendanceTable.innerHTML += `
-                            <tr>
-                                <td data-label="Subject">${subject}</td>
-                                <td data-label="Type">${type}</td>
-                                <td data-label="Present">${present}</td>
-                                <td data-label="Total">${total}</td>
-                                <td data-label="Attendance %">${percent}%</td>
-                            </tr>
-                        `;
-                    }
-                }
-
-                const overallPercent = totalClasses === 0 ? 0 : ((totalPresent / totalClasses) * 100).toFixed(1);
-                overallDisplay.textContent = `${overallPercent}%`;
-
-            } catch (error) {
-                console.error("Error fetching attendance records:", error);
-                showModal("Error", "Error loading your attendance. Please check console for details.");
-                attendanceTable.innerHTML = `<tr><td colspan="5">Failed to load attendance data.</td></tr>`;
+        const assignedSubjects = []; // subject__type
+        const uniqueSubjects = new Set();
+        assignmentsSnap.forEach(doc => {
+            const d = doc.data();
+            if (!uniqueSubjects.has(`${d.subject}__${d.type}`)) {
+                assignedSubjects.push({ subject: d.subject, type: d.type });
+                uniqueSubjects.add(`${d.subject}__${d.type}`);
             }
         });
 
-        // Logout button listener
-        document.getElementById("logoutBtn").addEventListener("click", async () => {
-            try {
-                await signOut(auth);
-                window.location.href = "index.html";
-            } catch (error) {
-                console.error("Error logging out:", error);
-                showModal("Error", "Error logging out: " + error.message);
+        const attendanceSnap = await getDocs(query(
+            collection(db, "attendance"),
+            where("studentId", "==", studentUid),
+            where("department", "==", department),
+            where("semester", "==", semester)
+        ));
+
+        const attendanceCounts = {}; // { subject_type: {present, total} }
+        const absenceDetails = [];
+
+        let totalPresent = 0;
+        let totalClasses = 0;
+        const MIN_PERCENT = 75;
+
+        attendanceSnap.forEach(doc => {
+            const record = doc.data();
+            const key = `${record.subject}__${record.type}`;
+
+            if (!attendanceCounts[key]) {
+                attendanceCounts[key] = {
+                    subject: record.subject,
+                    type: record.type,
+                    present: 0,
+                    total: 0
+                };
+            }
+
+            attendanceCounts[key].total++;
+            totalClasses++;
+
+            if (record.status === "Present") {
+                attendanceCounts[key].present++;
+                totalPresent++;
+            } else {
+                // For Absent record, log detail
+                const dayName = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
+                absenceDetails.push({
+                    subject: record.subject,
+                    type: record.type,
+                    date: record.date,
+                    time: record.time || "N/A",
+                    day: dayName
+                });
             }
         });
+
+        // Populate attendance summary table
+        attendanceTable.innerHTML = "";
+        for (const key in attendanceCounts) {
+            const { subject, type, present, total } = attendanceCounts[key];
+            const percentage = total === 0 ? 0 : ((present / total) * 100).toFixed(1);
+
+            // Calculate how many more classes are needed to meet 75%
+            const minRequired = Math.ceil(0.75 * total);
+            const shortfall = minRequired - present;
+            let note = shortfall > 0
+                ? `<span style='color:red'>Need ${shortfall} more</span>`
+                : `<span style='color:green'>On track</span>`;
+
+            attendanceTable.innerHTML += `
+                <tr>
+                    <td data-label="Subject">${subject}</td>
+                    <td data-label="Type">${type}</td>
+                    <td data-label="Present">${present}</td>
+                    <td data-label="Total">${total}</td>
+                    <td data-label="Attendance %">${percentage}%<br>${note}</td>
+                </tr>`;
+        }
+
+        // Show Overall Attendance
+        const overallDisplay = document.getElementById("overallAttendance");
+        const overallPercent = totalClasses === 0 ? 0 : ((totalPresent / totalClasses) * 100).toFixed(2);
+        overallDisplay.textContent = `${overallPercent}%`;
+
+        // Append absence table
+        if (absenceDetails.length > 0) {
+            const absTitle = document.createElement("h3");
+            absTitle.textContent = "🟥 Absence Records";
+            document.body.appendChild(absTitle);
+
+            const absTable = document.createElement("table");
+            absTable.innerHTML = `
+                <thead>
+                    <tr><th>Subject</th><th>Type</th><th>Date</th><th>Day</th><th>Time</th></tr>
+                </thead>
+                <tbody>
+                    ${absenceDetails.map(d => `
+                        <tr>
+                            <td>${d.subject}</td>
+                            <td>${d.type}</td>
+                            <td>${d.date}</td>
+                            <td>${d.day}</td>
+                            <td>${d.time}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>`;
+            document.body.appendChild(absTable);
+        }
+   const logoutBtnContainer = document.createElement("div");
+logoutBtnContainer.style.textAlign = "center";
+logoutBtnContainer.style.margin = "50px 0 30px 0";
+logoutBtnContainer.innerHTML = `
+    <button id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+`;
+document.body.appendChild(logoutBtnContainer);
+
+// ✅ Add event listener AFTER button is added dynamically
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+    try {
+        await signOut(auth);
+        window.location.href = "index.html";
+    } catch (error) {
+        console.error("Error logging out:", error);
+        showModal("Error", "Error logging out: " + error.message);
+    }
+});
+
+    } catch (err) {
+        console.error("Error loading student dashboard:", err);
+        showModal("Error", err.message || "Failed to load dashboard.");
+    }
+});
+
+        
     </script>
 
 </body>
