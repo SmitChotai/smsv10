@@ -3,12 +3,12 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Student Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif; /* Changed to Inter */
+            font-family: 'Inter', sans-serif;
             background-color: #f4f9ff;
             margin: 0;
             padding: 30px;
@@ -66,16 +66,18 @@
             color: white;
         }
 
-        th, td {
+        th,
+        td {
             padding: 12px 16px;
             border-bottom: 1px solid #ddd;
             font-size: 15px;
             text-align: left;
         }
-        th:last-child, td:last-child {
-            text-align: right; /* Align percentage to right */
-        }
 
+        th:last-child,
+        td:last-child {
+            text-align: right;
+        }
 
         tbody tr:hover {
             background-color: #f2f9ff;
@@ -84,7 +86,7 @@
         #overallAttendance {
             font-weight: bold;
             color: #27ae60;
-            font-size: 1.5rem; /* Larger font for overall percentage */
+            font-size: 1.5rem;
             display: block;
             margin: 15px auto 0;
             background-color: white;
@@ -117,17 +119,16 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        /* Modal for messages instead of alert() */
         .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1000; /* Sit on top */
+            display: none;
+            position: fixed;
+            z-index: 1000;
             left: 0;
             top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -141,69 +142,52 @@
             border-radius: 8px;
             width: 80%;
             max-width: 500px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             position: relative;
             animation-name: animatetop;
             animation-duration: 0.4s;
         }
 
         @keyframes animatetop {
-            from {top: -300px; opacity: 0}
-            to {top: 0; opacity: 1}
+            from {
+                top: -300px;
+                opacity: 0
+            }
+
+            to {
+                top: 0;
+                opacity: 1
+            }
         }
 
         .modal-header {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-            margin-bottom: 15px;
             font-size: 20px;
             font-weight: bold;
             color: #3498db;
+            margin-bottom: 15px;
         }
-
-        .modal-body {
-            font-size: 16px;
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
-
-        .modal-footer {
-            text-align: right;
-        }
-
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            cursor: pointer;
-        }
-
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
 
         @media (max-width: 768px) {
             body {
                 padding: 15px;
             }
+
             table {
                 width: 100%;
             }
-            th, td {
+
+            th,
+            td {
                 padding: 10px;
                 font-size: 14px;
             }
 
-            /* Responsive table behavior */
-            table, thead, tbody, th, td, tr {
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
                 display: block;
             }
 
@@ -233,28 +217,35 @@
                 top: 12px;
                 left: 12px;
                 width: 45%;
-                padding-right: 10px;
                 white-space: nowrap;
                 text-align: left;
                 font-weight: bold;
-                content: attr(data-label); /* Use data-label attribute for headers */
-            }
-            td:nth-of-type(1):before { content: "Subject"; }
-            td:nth-of-type(2):before { content: "Type"; }
-            td:nth-of-type(3):before { content: "Present"; }
-            td:nth-of-type(4):before { content: "Total"; }
-            td:nth-of-type(5):before { content: "Attendance %"; }
-
-            h2, h3 {
-                font-size: 1.5rem;
+                content: attr(data-label);
             }
 
-            button {
-                width: 100%;
+            td:nth-of-type(1):before {
+                content: "Subject";
+            }
+
+            td:nth-of-type(2):before {
+                content: "Type";
+            }
+
+            td:nth-of-type(3):before {
+                content: "Present";
+            }
+
+            td:nth-of-type(4):before {
+                content: "Total";
+            }
+
+            td:nth-of-type(5):before {
+                content: "Attendance %";
             }
         }
     </style>
 </head>
+
 <body>
     <div id="messageModal" class="modal">
         <div class="modal-content">
@@ -270,7 +261,7 @@
     <h2>Welcome, Student!</h2>
     <p id="studentEmail"></p>
 
-    <h3>Your Subject-wise Attendance</h3>
+    <h3>Your Subject-wise Attendance </h3>
     <table>
         <thead>
             <tr>
@@ -286,38 +277,14 @@
 
     <h3>Overall Attendance: <span id="overallAttendance">0%</span></h3>
 
-
-<!-- Detailed Absence Table Here if needed -->
-<div id="absenceDetails"></div>
-
-<!-- Logout button placed at the very end
-<div style="text-align: center; margin-top: 40px;">
-  <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
-</div> -->
-
-      <!-- <h3>Absence Details</h3>
-<table id="absenceTable">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Subject</th>
-      <th>Type</th>
-      <th>Time</th>
-      <th>Day</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table> -->
+    <div id="absenceDetails"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Canvas Environment Variables (Still needed for initialization) ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            // Fallback for local testing if __firebase_config is not defined
+        const firebaseConfig = {
             apiKey: "AIzaSyBgXG-oIsLygIUwC4H5xUcduHqWa1Kba5w",
             authDomain: "studentattendancesystem-e3f6c.firebaseapp.com",
             projectId: "studentattendancesystem-e3f6c",
@@ -326,7 +293,6 @@
             appId: "1:385675923275:web:945301f83c5a7d182162ce",
             measurementId: "G-DM0VLMVNTM"
         };
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -336,188 +302,203 @@
         const attendanceTable = document.getElementById("attendanceTable");
         const overallDisplay = document.getElementById("overallAttendance");
 
-        // --- Modal Functions (Instead of alert()) ---
         function showModal(header, body) {
             document.getElementById('modalHeader').textContent = header;
             document.getElementById('modalBody').textContent = body;
             document.getElementById('messageModal').style.display = 'flex';
         }
-
-        function closeModal() {
-            document.getElementById('messageModal').style.display = 'none';
-        }
-        
-        // Add event listeners for modal close buttons
+        function closeModal() { document.getElementById('messageModal').style.display = 'none'; }
         document.getElementById("modalCloseButton").addEventListener("click", closeModal);
         document.getElementById("modalOkButton").addEventListener("click", closeModal);
 
-       onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-        showModal("Authentication Required", "Please log in.");
-        window.location.href = "index.html";
-        return;
-    }
-
-    const studentEmail = user.email;
-    const studentUid = user.uid;
-    emailDisplay.textContent = `Logged in as: ${studentEmail}`;
-
-    let department = null;
-    let semester = null;
-    const attendanceTable = document.getElementById("attendanceTable");
-
-    try {
-        const studentDoc = await getDoc(doc(db, "users", studentUid));
-        if (!studentDoc.exists()) throw new Error("Student data not found");
-
-        const studentData = studentDoc.data();
-        department = studentData.department;
-        semester = studentData.semester;
-
-        const assignmentsSnap = await getDocs(query(
-            collection(db, "assignments"),
-            where("department", "==", department),
-            where("semester", "==", semester)
-        ));
-
-        const assignedSubjects = []; // subject__type
-        const uniqueSubjects = new Set();
-        assignmentsSnap.forEach(doc => {
-            const d = doc.data();
-            if (!uniqueSubjects.has(`${d.subject}__${d.type}`)) {
-                assignedSubjects.push({ subject: d.subject, type: d.type });
-                uniqueSubjects.add(`${d.subject}__${d.type}`);
-            }
-        });
-
-        const attendanceSnap = await getDocs(query(
-            collection(db, "attendance"),
-            where("studentId", "==", studentUid),
-            where("department", "==", department),
-            where("semester", "==", semester)
-        ));
-
-        const attendanceCounts = {}; // { subject_type: {present, total} }
-        const absenceDetails = [];
-
-        let totalPresent = 0;
-        let totalClasses = 0;
-        const MIN_PERCENT = 75;
-
-        attendanceSnap.forEach(doc => {
-            const record = doc.data();
-            const key = `${record.subject}__${record.type}`;
-
-            if (!attendanceCounts[key]) {
-                attendanceCounts[key] = {
-                    subject: record.subject,
-                    type: record.type,
-                    present: 0,
-                    total: 0
-                };
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                showModal("Authentication Required", "Please log in.");
+                window.location.href = "index.html";
+                return;
             }
 
-            attendanceCounts[key].total++;
-            totalClasses++;
+            const studentEmail = user.email;
+            const studentUid = user.uid;
+            emailDisplay.textContent = `Logged in as: ${studentEmail}`;
 
-            if (record.status === "Present") {
-                attendanceCounts[key].present++;
-                totalPresent++;
-            } else {
-                // For Absent record, log detail
-                const dayName = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
-                absenceDetails.push({
-                    subject: record.subject,
-                    type: record.type,
-                    date: record.date,
-                    time: record.time || "N/A",
-                    day: dayName
+            try {
+                const studentDoc = await getDoc(doc(db, "users", studentUid));
+                if (!studentDoc.exists()) throw new Error("Student data not found");
+
+                const studentData = studentDoc.data();
+                const department = studentData.department || null;
+                const semester = studentData.semester || null;
+
+                if (!department || !semester) {
+                    showModal("Error", "Your department or semester info is missing. Please contact admin.");
+                    return;
+                }
+
+                const attendanceSnap = await getDocs(query(
+                    collection(db, "attendance"),
+                    where("studentId", "==", studentUid),
+                    where("department", "==", department),
+                    where("semester", "==", semester)
+                ));
+
+                const attendanceCounts = {}; // subject+type
+                const combinedCounts = {};   // subject only
+                const absenceDetails = [];
+
+                let totalPresent = 0;
+                let totalClasses = 0;
+
+                attendanceSnap.forEach(doc => {
+                    const record = doc.data();
+                    const key = `${record.subject}__${record.type}`;
+
+                    if (!attendanceCounts[key]) {
+                        attendanceCounts[key] = { subject: record.subject, type: record.type, present: 0, total: 0 };
+                    }
+
+                    attendanceCounts[key].total++;
+                    totalClasses++;
+                    if (record.status === "Present") {
+                        attendanceCounts[key].present++;
+                        totalPresent++;
+                    } else {
+                        const dayName = new Date(record.date).toLocaleDateString("en-US", { weekday: "long" });
+                        absenceDetails.push({
+                            subject: record.subject,
+                            type: record.type,
+                            date: record.date,
+                            time: record.time || "N/A",
+                            day: dayName
+                        });
+                    }
+
+                    // Combined by subject
+                    if (!combinedCounts[record.subject]) {
+                        combinedCounts[record.subject] = { subject: record.subject, present: 0, total: 0 };
+                    }
+                    combinedCounts[record.subject].total++;
+                    if (record.status === "Present") combinedCounts[record.subject].present++;
                 });
+
+                // --- Populate Lecture/Lab separate table ---
+                attendanceTable.innerHTML = "";
+                for (const key in attendanceCounts) {
+                    const { subject, type, present, total } = attendanceCounts[key];
+                    const percentage = total === 0 ? 0 : ((present / total) * 100).toFixed(1);
+
+                    let note;
+                    if (total === 0) {
+                        note = `<span style='color:gray'>No data</span>`;
+                    } else if ((present / total) >= 0.70) {
+                        note = `<span style='color:green'>On track</span>`;
+                    } else {
+                        const neededLectures = Math.ceil((0.70 * total - present) / 0.25);
+                        note = `<span style='color:red'>Need ${neededLectures} more </span>`;
+                    }
+
+                    attendanceTable.innerHTML += `
+        <tr>
+            <td data-label="Subject">${subject}</td>
+            <td data-label="Type">${type}</td>
+            <td data-label="Present">${present}</td>
+            <td data-label="Total">${total}</td>
+            <td data-label="Attendance %">${percentage}%<br>${note}</td>
+        </tr>`;
+                }
+
+
+                // --- Show Combined Subject Table ---
+                const combinedTitle = document.createElement("h3");
+                combinedTitle.textContent = "📊 Combined Subject Attendance (Lecture + Lab)";
+                document.body.appendChild(combinedTitle);
+
+                const combinedTable = document.createElement("table");
+                combinedTable.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Present</th>
+                            <th>Total</th>
+                            <th>Attendance %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.values(combinedCounts).map(d => {
+                    const percent = d.total === 0 ? 0 : ((d.present / d.total) * 100).toFixed(1);
+
+                    let note;
+                    if (d.total === 0) {
+                        note = `<span style='color:gray'>No data</span>`;
+                    } else if ((d.present / d.total) >= 0.70) {
+                        note = `<span style='color:green'>On track</span>`;
+                    } else {
+                        // Formula: n ≥ (0.70*total - present) / 0.25
+                        const neededLectures = Math.ceil((0.70 * d.total - d.present) / 0.25);
+                        note = `<span style='color:red'>Need ${neededLectures} more </span>`;
+                    }
+
+                    return `
+        <tr>
+            <td>${d.subject}</td>
+            <td>${d.present}</td>
+            <td>${d.total}</td>
+            <td>${percent}%<br>${note}</td>
+        </tr>`;
+                }).join("")}
+
+                    </tbody>`;
+                document.body.appendChild(combinedTable);
+
+                // --- Overall Attendance ---
+                const overallPercent = totalClasses === 0 ? 0 : ((totalPresent / totalClasses) * 100).toFixed(2);
+                overallDisplay.textContent = `${overallPercent}%`;
+
+                // --- Absence Records ---
+                if (absenceDetails.length > 0) {
+                    const absTitle = document.createElement("h3");
+                    absTitle.textContent = "🟥 Absence Records";
+                    document.body.appendChild(absTitle);
+
+                    const absTable = document.createElement("table");
+                    absTable.innerHTML = `
+                        <thead><tr><th>Subject</th><th>Type</th><th>Date</th><th>Day</th><th>Time</th></tr></thead>
+                        <tbody>
+                            ${absenceDetails.map(d => `
+                                <tr>
+                                    <td>${d.subject}</td>
+                                    <td>${d.type}</td>
+                                    <td>${d.date}</td>
+                                    <td>${d.day}</td>
+                                    <td>${d.time}</td>
+                                </tr>`).join("")}
+                        </tbody>`;
+                    document.body.appendChild(absTable);
+                }
+
+                // --- Logout Button ---
+                const logoutBtnContainer = document.createElement("div");
+                logoutBtnContainer.style.textAlign = "center";
+                logoutBtnContainer.style.margin = "50px 0 30px 0";
+                logoutBtnContainer.innerHTML = `<button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>`;
+                document.body.appendChild(logoutBtnContainer);
+
+                document.getElementById("logoutBtn").addEventListener("click", async () => {
+                    try {
+                        await signOut(auth);
+                        window.location.href = "index.html";
+                    } catch (error) {
+                        console.error("Error logging out:", error);
+                        showModal("Error", "Error logging out: " + error.message);
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error loading student dashboard:", err);
+                showModal("Error", err.message || "Failed to load dashboard.");
             }
         });
-
-        // Populate attendance summary table
-        attendanceTable.innerHTML = "";
-        for (const key in attendanceCounts) {
-            const { subject, type, present, total } = attendanceCounts[key];
-            const percentage = total === 0 ? 0 : ((present / total) * 100).toFixed(1);
-
-            // Calculate how many more classes are needed to meet 75%
-            const minRequired = Math.ceil(0.70 * total);
-            const shortfall = minRequired - present;
-            let note = shortfall > 0
-                ? `<span style='color:red'>Need ${shortfall} more</span>`
-                : `<span style='color:green'>On track</span>`;
-
-            attendanceTable.innerHTML += `
-                <tr>
-                    <td data-label="Subject">${subject}</td>
-                    <td data-label="Type">${type}</td>
-                    <td data-label="Present">${present}</td>
-                    <td data-label="Total">${total}</td>
-                    <td data-label="Attendance %">${percentage}%<br>${note}</td>
-                </tr>`;
-        }
-
-        // Show Overall Attendance
-        const overallDisplay = document.getElementById("overallAttendance");
-        const overallPercent = totalClasses === 0 ? 0 : ((totalPresent / totalClasses) * 100).toFixed(2);
-        overallDisplay.textContent = `${overallPercent}%`;
-
-        // Append absence table
-        if (absenceDetails.length > 0) {
-            const absTitle = document.createElement("h3");
-            absTitle.textContent = "🟥 Absence Records";
-            document.body.appendChild(absTitle);
-
-            const absTable = document.createElement("table");
-            absTable.innerHTML = `
-                <thead>
-                    <tr><th>Subject</th><th>Type</th><th>Date</th><th>Day</th><th>Time</th></tr>
-                </thead>
-                <tbody>
-                    ${absenceDetails.map(d => `
-                        <tr>
-                            <td>${d.subject}</td>
-                            <td>${d.type}</td>
-                            <td>${d.date}</td>
-                            <td>${d.day}</td>
-                            <td>${d.time}</td>
-                        </tr>
-                    `).join("")}
-                </tbody>`;
-            document.body.appendChild(absTable);
-        }
-   const logoutBtnContainer = document.createElement("div");
-logoutBtnContainer.style.textAlign = "center";
-logoutBtnContainer.style.margin = "50px 0 30px 0";
-logoutBtnContainer.innerHTML = `
-    <button id="logoutBtn">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </button>
-`;
-document.body.appendChild(logoutBtnContainer);
-
-// ✅ Add event listener AFTER button is added dynamically
-document.getElementById("logoutBtn").addEventListener("click", async () => {
-    try {
-        await signOut(auth);
-        window.location.href = "index.html";
-    } catch (error) {
-        console.error("Error logging out:", error);
-        showModal("Error", "Error logging out: " + error.message);
-    }
-});
-
-    } catch (err) {
-        console.error("Error loading student dashboard:", err);
-        showModal("Error", err.message || "Failed to load dashboard.");
-    }
-});
-
-        
     </script>
-
 </body>
-</html>
 
+</html>
