@@ -443,7 +443,7 @@
             const percentage = total === 0 ? 0 : ((present / total) * 100).toFixed(1);
 
             // Calculate how many more classes are needed to meet 75%
-            const minRequired = Math.ceil(0.75 * total);
+            const minRequired = Math.ceil(0.70 * total);
             const shortfall = minRequired - present;
             let note = shortfall > 0
                 ? `<span style='color:red'>Need ${shortfall} more</span>`
@@ -520,3 +520,4 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
 
 </body>
 </html>
+
